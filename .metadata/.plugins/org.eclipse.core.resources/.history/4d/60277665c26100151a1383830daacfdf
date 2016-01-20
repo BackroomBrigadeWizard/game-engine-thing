@@ -1,0 +1,208 @@
+package com.akumainc.game;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Insets;
+import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
+import java.util.Random;
+
+import javax.swing.JFrame;
+
+public class Main extends JFrame{
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	//width and height of the window
+	private int width; 
+	private int height;
+	
+	InputHandler input;
+	
+	//inset object for later getting the insets of the window
+	Insets insets;
+	
+	//rng object
+	Random rand;
+	
+	//keeps the game runing
+	private boolean isRunning = true;
+	
+	//velocity vars for object x and y pos
+	private static float velX;
+	private static float velY;
+	
+	//backbuffered image object
+	BufferedImage backBuffer;
+	
+	//x and y vars for an entity
+	private float x;
+	private float y;
+	
+	void initialize() {
+		
+		rand = new Random();
+		
+		input = new InputHandler(this);
+		addKeyListener(input);
+		setFocusable(true);
+		
+		width = 1280;
+		height = 720;
+		
+		velX = 0;
+		velY = 0;
+		
+		x = rand.nextInt(width);
+		y = rand.nextInt(height);
+		
+		backBuffer = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+	
+		setTitle("Game");
+		setSize(width, height);
+		setResizable(false);
+		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		setVisible(true);
+		
+		insets = getInsets();
+		
+		setSize(insets.left + width + insets.right, insets.top + height + insets.bottom);
+	}
+	
+	public static float getVelX() {
+		return velX;
+	}
+
+	public static void setVelX(float velX1) {
+		velX = velX1;
+	}
+
+	public static float getVelY() {
+		return velY;
+	}
+
+	public static void setVelY(float velY1) {
+		velY = velY1;
+	}
+
+	//the run method, runs and game and includes the game loop
+	public void run() {
+		
+		initialize();
+		
+		//fps counters needed to determine the current fps of the game
+		long lastFpsTime = 0;
+		int fps = 0;
+		
+		//used later to determine the wait time
+		long lastLoopTime = System.nanoTime();
+		final int TARGET_FPS = 60;
+		final long OPTIMAL_TIME = 1000000000 / TARGET_FPS;
+		
+		while(isRunning) {
+			
+			//work out how long its been since the last update,
+			//will be used to calculate how far the entites should 
+			//move this loop
+			long now = System.nanoTime();
+			long updateLength = now - lastLoopTime;
+			lastLoopTime = now;
+			double delta = updateLength / ((double)OPTIMAL_TIME);
+			
+			//update the frame counter 
+			lastFpsTime += updateLength;
+			fps++;
+			
+			//update our FPS counter if a second has passed since 
+			//we last recorded it
+			if(lastFpsTime >= 1000000000) {
+				//System.out.println("(FPS: " + fps + ")");
+				setTitle("Game || fps: " + fps);
+				lastFpsTime = 0;
+				fps = 0;
+			}
+			
+			//update game logic
+			update(delta);
+			
+			//update rendering
+			render();
+			
+			//we want each frame t take 10 milliseconds, to do this
+			//we've recoded when we started the frame we add 10 ms
+			//to this and then factor in the current time to give 
+			//us our final value to wait for
+			//remember that this in is ms, whereas our lastLoopTime, ect. is in ns
+			try{Thread.sleep((lastLoopTime - System.nanoTime() + OPTIMAL_TIME)/1000000);}
+			catch(Exception e) {}
+			
+		}
+		setVisible(false);
+	}
+
+
+	//remember to multiply time related values by delta(ie: x's and y's)
+	void update(double delta) {
+		x += velX * delta;
+		y += velY * delta;
+		
+//		if(x + 50 >= width || x <= 0) {
+//			if(velX < 0)
+//				velX -= 0.5f;
+//			else
+//				velX += 0.5f;
+//			velX *= -1;
+//		}
+//		
+//		if(y + 50 >= height || y <= 0){
+//			if(velY < 0)
+//				velY -= 0.5f;
+//			else
+//				velY += 0.5f;
+//			velY *=-1;
+//		}
+		
+		if(input.isKeyDown(KeyEvent.VK_W)) {
+			velY = -5;
+		}
+		else if(input.isKeyDown(KeyEvent.VK_S)) {
+			velY = 5;
+		}
+		else
+			velY = 0;
+		
+		if(input.isKeyDown(KeyEvent.VK_A)) {
+			velX = -5;
+		}
+		else if (input.isKeyDown(KeyEvent.VK_D)) {
+			velX = 5;
+		}
+		else
+			velX = 0;
+
+		
+	} 
+	
+	void render() {
+		Graphics2D g = (Graphics2D) getGraphics();
+		
+		Graphics2D bbg = (Graphics2D) backBuffer.getGraphics();
+		
+		bbg.setColor(Color.WHITE);
+		bbg.fillRect(0, 0, width, height);
+		
+		bbg.setColor(Color.BLACK);
+		bbg.fillRect((int)x, (int)y, 50, 50);
+		
+		g.drawImage(backBuffer, insets.left, insets.top, this);
+	}
+	
+	public static void main(String[] args) {
+		Main game = new Main();
+		game.run();
+		System.exit(0);
+	}
+
+}
